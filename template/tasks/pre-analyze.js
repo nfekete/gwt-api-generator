@@ -41,21 +41,13 @@ gulp.task('pre-analyze:missing-events', function() {
 gulp.task('pre-analyze:missing-behaviors', function() {
   return gulp
     .src([
-          global.bowerDir + "*/paper-button-behavior.html",
-          global.bowerDir + "*paper-behaviors/bower.json"
+          global.bowerDir + "*/app-pouchdb-document.html"
           ])
     .pipe(map(function(file, cb) {
       file.contents = new Buffer(String(file.contents)
-          // paper-button-behavior is bad documented
-          // TODO: remove when merged:
-          // https://github.com/PolymerElements/paper-behaviors/commit/1ed3301da4f9ed873e19df1e76c6291b510ce9e2
-          .replace(/\/\*\* @polymerBehavior \*\//, function(m) {
+          .replace(/(\/\*\* *@override *)\*\/\n([ \t]*)(save:)/, function(m, g1, g2, g3) {
              console.log("WARNING: patching " + file.relative);
-             return  "/** @polymerBehavior Polymer.PaperButtonBehavior */";
-          })
-          .replace(/"paper-radio-button-behavior.html"/, function(m) {
-             console.log("WARNING: patching " + file.relative);
-             return  '"paper-inky-focus-behavior.html"';
+             return  g1 + "\n" + g2 + "* @return {Promise}\n" + g2 + "*/\n" + g2 + g3;
           })
       );
       cb(null, file);
