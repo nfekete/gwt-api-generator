@@ -30,9 +30,6 @@ public abstract class Polymer {
     public static Base Base;
     private static boolean hasHtmlImports = htmlImportsSupported();
 
-    @JsProperty(namespace = JsPackage.GLOBAL)
-    public static String performance;
-
     /**
      * Set the location of the bower_components for the application.
      * By default it is computed from the module base.
@@ -52,10 +49,12 @@ public abstract class Polymer {
             String moduleBase = GWT.getModuleBaseForStaticFiles();
             String moduleName = GWT.getModuleName();
             // SSO linker does not set correctly the module base
-            if (!moduleBase.contains(moduleName)) {
-                moduleBase = moduleName + "/";
-            }
-            setGwtBowerLocation(moduleBase + "bower_components/");
+            if (moduleBase != null) {
+				if (!moduleBase.contains(moduleName)) {
+				    moduleBase = moduleName + "/";
+				}
+				setGwtBowerLocation(moduleBase + "bower_components/");
+			}
         }
     }
 
