@@ -41,13 +41,23 @@ gulp.task('pre-analyze:missing-events', function() {
 gulp.task('pre-analyze:missing-behaviors', function() {
   return gulp
     .src([
-          global.bowerDir + "*/app-pouchdb-document.html"
+          global.bowerDir + "*/app-pouchdb-document.html",
+          global.bowerDir + "**/app-localstorage-document.html"
           ])
     .pipe(map(function(file, cb) {
       file.contents = new Buffer(String(file.contents)
           .replace(/(\/\*\* *@override *)\*\/\n([ \t]*)(save:)/, function(m, g1, g2, g3) {
              console.log("WARNING: patching " + file.relative);
              return  g1 + "\n" + g2 + "* @return {Promise}\n" + g2 + "*/\n" + g2 + g3;
+          })
+          .replace(/(\n.*?destroy:)/g, function(m, g1) {
+             console.log("WARNING: patching " + file.relative);
+             return "\n      /**" +
+                 "\n       * Remove the data from storage." +
+                 "\n       *" +
+                 "\n       * @return {Promise} A promise that settles once the destruction is" +
+                 "\n       *   complete." +
+                 "\n       */" + g1;
           })
       );
       cb(null, file);
