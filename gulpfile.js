@@ -105,6 +105,8 @@ gulp.task('analyze', ['clean:target', 'pre-analyze'], function() {
     // vaadin elements
     globalVar.bowerDir + "*/vaadin-*/vaadin-*.html",
     // ignore all demo.html, index.html and metadata.html files
+    "!" + globalVar.bowerDir + "**/demo/*.html",
+    "!" + globalVar.bowerDir + "**/test/*.html",
     "!" + globalVar.bowerDir + "*/*demo.html",
     "!" + globalVar.bowerDir + "*/*index.html",
     "!" + globalVar.bowerDir + "*/*metadata.html",
@@ -117,7 +119,7 @@ gulp.task('analyze', ['clean:target', 'pre-analyze'], function() {
       hyd.Analyzer.analyze(globalVar.bowerDir + file.relative).then(function(result) {
         var jsonArray = _.union(result.elements, result.behaviors);
         jsonArray.forEach(function(item) {
-          var path = file.relative.replace(/\\/, '/');
+          var path = file.relative.replace(/\\/g, '/');
           if (item.is) {
             item.name = item.is;
             item.path = path;
