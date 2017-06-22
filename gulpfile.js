@@ -101,7 +101,7 @@ gulp.task('parse', ['analyze'], function(cb) {
 });
 
 gulp.task('analyze', ['clean:target', 'pre-analyze'], function() {
-  return gulp.src([globalVar.bowerDir + "*/*.html",
+  return gulp.src([globalVar.bowerDir + "**/*.html",
     // vaadin elements
     globalVar.bowerDir + "*/vaadin-*/vaadin-*.html",
     // ignore all demo.html, index.html and metadata.html files
@@ -153,7 +153,7 @@ function parseTemplate(template, obj, name, dir, suffix) {
   // We have to compute the appropriate name-space for the component.
   var prefix =
     // For events we prefer the first word of the name if they are standard ones.
-    /^Event/.test(suffix) && /^(polymer|iron|paper|neon)-/.test(name) ? name :
+    /^Event/.test(suffix) && /^(app|polymer|iron|paper|neon)-/.test(name) ? name :
     // Otherwise we try the name from its bower.json, then the sub-folder name in
     // bower_components, and finally from its name.
     obj.bowerData && obj.bowerData.name || obj.path.replace(/.*\/+(.+)\/+[^\/]+/, '$1') || name;
