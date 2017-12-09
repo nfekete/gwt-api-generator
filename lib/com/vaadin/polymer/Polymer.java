@@ -2,14 +2,13 @@ package com.vaadin.polymer;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.JavaScriptObject;
-import com.google.gwt.core.client.JsArray;
+import elemental2.core.Array;
 import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.user.client.DOM;
-import com.google.gwt.user.client.Timer;
 
-import com.vaadin.polymer.elemental.Function;
-import com.vaadin.polymer.elemental.HTMLElement;
+import com.vaadin.polymer.PolymerFunction;
+import elemental2.dom.HTMLElement;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +21,7 @@ import static jsinterop.annotations.JsPackage.GLOBAL;
 import jsinterop.annotations.JsPackage;
 import jsinterop.annotations.JsProperty;
 import jsinterop.annotations.JsType;
+import jsinterop.base.Js;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
 public abstract class Polymer {
@@ -63,11 +63,11 @@ public abstract class Polymer {
 
         <T extends HTMLElement> T querySelector(String selector);
 
-        JsArray querySelectorAll(String selector);
+        Array querySelectorAll(String selector);
 
         void appendChild(Object el);
 
-        JsArray children();
+        Array children();
     }
 
     @JsType(isNative=true, namespace=GLOBAL)
@@ -122,7 +122,7 @@ public abstract class Polymer {
          * timing (after the current method finishes, but before the next event from the event
          * queue is processed). Returns a handle that can be used to cancel the task.
          */
-        Object async(Function method, int wait);
+        Object async(PolymerFunction method, int wait);
 
         /**
          * Cancels the identified async task.
@@ -145,7 +145,7 @@ public abstract class Polymer {
         /**
          *  Dynamically imports an HTML document.
          */
-        void importHref(String href, Function onload, Function onerror);
+        void importHref(String href, PolymerFunction onload, PolymerFunction onerror);
 
         /**
          * Takes a URL relative to the <dom-module> of an imported Polymer element, and returns
@@ -156,7 +156,7 @@ public abstract class Polymer {
     }
 
     private static Set<String> urlImported = new HashSet<>();
-    private static HashMap<String, List<Function>> whenImported = new HashMap<>();
+    private static HashMap<String, List<PolymerFunction>> whenImported = new HashMap<>();
 
     /**
      * Inserts the appropriate &lt;import&gt; of a component given by url.
@@ -173,7 +173,7 @@ public abstract class Polymer {
      * @param href either an absolute url or a path relative to bower_components folder.
      * @param ok callback to run in case of success
      */
-    public static void importHref(String href, Function ok) {
+    public static void importHref(String href, PolymerFunction ok) {
         importHref(href, ok, null);
     }
 
@@ -193,7 +193,7 @@ public abstract class Polymer {
     }
 
     // Loads Polymer once if not done yet, and queue all callbaks until ready
-    private static native void whenPolymerLoaded(Function ok)
+    private static native void whenPolymerLoaded(PolymerFunction ok)
     /*-{
         function resolve() {
           // Set our static reference to Base
@@ -238,19 +238,19 @@ public abstract class Polymer {
      * @param ok callback to run in case of success
      * @param err callback to run in case of failure
      */
-    public static void importHref(String hrefOrTag, final Function ok, final Function err) {
+    public static void importHref(String hrefOrTag, final PolymerFunction ok, final PolymerFunction err) {
         final String href = absoluteHref(hrefOrTag);
 
-        Function done = arg -> {
-                urlImported.add(href);
-                List<Function> pending = whenImported.get(href);
-                if (pending != null) {
-                    for (Function f : pending) {
-                        f.call(null);
-                    }
+        PolymerFunction done = arg -> {
+            urlImported.add(href);
+            List<PolymerFunction> pending = whenImported.get(href);
+            if (pending != null) {
+                for (PolymerFunction f : pending) {
+                    f.call(null);
                 }
-                whenImported.remove(href);
-                return null;
+            }
+            whenImported.remove(href);
+            return null;
         };
         if (Base == null) {
             whenPolymerLoaded(arg -> {
@@ -261,9 +261,9 @@ public abstract class Polymer {
         }
         if (!urlImported.contains(href)) {
             if (!isRegistered(href)) {
-                List<Function> pending = whenImported.get(href);
+                List<PolymerFunction> pending = whenImported.get(href);
                 if (pending == null) {
-                    pending = new ArrayList<Function>();
+                    pending = new ArrayList<PolymerFunction>();
                     whenImported.put(href, pending);
                     Base.importHref(href, done, err);
                 }
@@ -293,9 +293,8 @@ public abstract class Polymer {
      *
      * @param hrefs a list of absolute urls or relative paths to load.
      * @param ok callback to run in case of all import success
-     * @param err callback to run in case of failure
      */
-    public static void importHref(final List<String> hrefs, final Function ok) {
+    public static void importHref(final List<String> hrefs, final PolymerFunction ok) {
         importHref(hrefs, ok, null);
     }
 
@@ -306,8 +305,8 @@ public abstract class Polymer {
      * @param ok callback to run in case of all import success
      * @param err callback to run in case of failure
      */
-    public static void importHref(final List<String> hrefs, final Function ok, Function err) {
-        Function allOk = ok == null ? ok : new Function() {
+    public static void importHref(final List<String> hrefs, final PolymerFunction ok, PolymerFunction err) {
+        PolymerFunction allOk = ok == null ? ok : new PolymerFunction() {
             int count = hrefs.size();
             public Object call(Object arg) {
                 if (--count == 0) {
@@ -340,28 +339,10 @@ public abstract class Polymer {
             return;
         }
 
-        // Delay this so as the developer gets an early version of the element and
-        // can assign properties soon.
-        new Timer() {
-            public void run() {
-                // We need to remove ownProperties from the element when it's not
-                // registered because a bug in Polymer 1.0.x
-                // https://github.com/Polymer/polymer/issues/1882
-                saveProperties((Element)elem);
-            }
-        }.schedule(0);
         // Import all necessary stuff for this element
         for (String src : imports) {
             importHref(src, null, null);
         }
-        // Wait until everything is ready
-        whenReady(new Function(){
-            public Object call(Object arg) {
-                // Restore saved ownProperties
-                restoreProperties((Element)elem);
-                return null;
-            }
-        }, (Element)elem);
     }
 
     /**
@@ -375,8 +356,8 @@ public abstract class Polymer {
     /**
      * Returns the JsInterop instance of Document
      */
-    public static com.vaadin.polymer.elemental.Document getDocument() {
-        return (com.vaadin.polymer.elemental.Document)Document.get();
+    public static elemental2.dom.Document getDocument() {
+        return Js.cast(Document.get());
     }
 
     /**
@@ -396,11 +377,11 @@ public abstract class Polymer {
         return !!e && e.constructor !== $wnd.HTMLElement && e.constructor != $wnd.HTMLUnknownElement;
     }-*/;
 
-    public static void ready(HTMLElement e, Function f) {
-        whenReady(f, (Element)e);
+    public static void ready(HTMLElement e, PolymerFunction f) {
+        whenReady(f, Js.cast(e));
     }
 
-    public static void ready(Element e, Function f) {
+    public static void ready(Element e, PolymerFunction f) {
         whenReady(f, e);
     }
 
@@ -412,27 +393,9 @@ public abstract class Polymer {
     }
 
     /**
-     * Restore all properties saved previously to the element was
-     * registered.
-     *
-     * Hack for: https://github.com/Polymer/polymer/issues/1882
-     */
-    private static native void restoreProperties(Element e)
-    /*-{
-        if (e && e.__o) {
-            @com.vaadin.polymer.Polymer::onReady(*)(e, function(){
-                for (i in e.__o) {
-                    e[i] = e.__o[i];
-                }
-                delete e.__o;
-            });
-        }
-    }-*/;
-
-    /**
      * Executes a function after all imports have been loaded.
      */
-    public static void whenReady(Function f) {
+    public static void whenReady(PolymerFunction f) {
         whenReady(f, null);
     }
 
@@ -446,7 +409,7 @@ public abstract class Polymer {
      * passed element is ready to use.
      * For browsers not supporting html imports, it loads the webcomponentsjs polyfill.
      */
-    public static native void whenReady(Function f, Element e)
+    public static native void whenReady(PolymerFunction f, Element e)
     /*-{
         function registered() {
           if (e) {
@@ -483,40 +446,13 @@ public abstract class Polymer {
 
     /**
      * If an element is not ready, loops until it gets ready, then
-     * run a Function (JsFunction or JavaFunction)
+     * run a PolymerFunction (JsFunction or JavaFunction)
      * @deprecated use {@link #whenReady(Function, Element)} instead.
      */
     @Deprecated
     private static void onReady(Element e, Object f) {
-        whenReady((Function)f, e);
+        whenReady((PolymerFunction)f, e);
     }
-
-    /**
-     * Read all element properties and save in a JS object in the element,
-     * so as we can restore then once the element is registered.
-     *
-     * We consider all ownProperties but those beginning or ending with '_'
-     * which is the symbol used by webcomponentjs to store private info.
-     *
-     * Hack for: https://github.com/Polymer/polymer/issues/1882
-     *
-     * TODO: this is a temporary workaround, and if the issue is not fixed in
-     * polymer we could eventually implement the fix based on a generated proxy
-     * per component to store for a while any method call.
-     */
-    private static native boolean saveProperties(Element e)
-    /*-{
-        if (!@com.vaadin.polymer.Polymer::isRegisteredElement(*)(e)) {
-            var o = {};
-            for (i in e) {
-                if (e.hasOwnProperty(i) && !/(^_|_$)/.test(i)) {
-                    o[i] = e[i];
-                    delete(e[i]);
-                    e.__o = o;
-                }
-            }
-        }
-    }-*/;
 
     /**
      * Utility method to show a loading element if there is no one in
@@ -543,12 +479,12 @@ public abstract class Polymer {
      *
      * @param container : The container to show when the component is available
      * @param webcomponent : Web component to monitor
-     * @param callback : Calback function
+     * @param func : Calback function
      */
-    public static void endLoading(final Element container, Element webcomponent, final Function func) {
+    public static void endLoading(final Element container, Element webcomponent, final PolymerFunction func) {
         container.getStyle().setOpacity(0);
         container.getStyle().setProperty("transition", "opacity 1.1s");
-        ready(webcomponent, new Function() {
+        ready(webcomponent, new PolymerFunction() {
             public Object call(Object arg) {
                 reFlow();
                 container.getStyle().setOpacity(1);
@@ -596,7 +532,7 @@ public abstract class Polymer {
      * penalty because we directly take the native array of the super ArrayList
      * implementation.
      */
-    public static native <T extends JavaScriptObject> JsArray<T> asJsArray(List<?> l)
+    public static native <T extends JavaScriptObject> Array<T> asJsArray(List<?> l)
     /*-{
         return l.@java.util.ArrayList::array;
     }-*/;
@@ -635,7 +571,7 @@ public abstract class Polymer {
      * Utility method for setting a function to a JS object.
      * Useful for binding functions to templates.
      */
-    public static void function(Object jso, String name, Function fnc) {
+    public static void function(Object jso, String name, PolymerFunction fnc) {
         property(jso, name, fnc);
     }
 
@@ -647,11 +583,6 @@ public abstract class Polymer {
        return jso[methodName].apply(jso, args);
     }-*/;
 
-    public static native <T> T cast(Object o)
-    /*-{
-      return o;
-    }-*/;
-
     /**
      * Return the dom API of one element.
      */
@@ -659,4 +590,3 @@ public abstract class Polymer {
         return Polymer.dom(element);
     }
 }
-

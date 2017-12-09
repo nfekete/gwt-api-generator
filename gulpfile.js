@@ -51,7 +51,7 @@ gulp.task('bower:configure', ['clean:resources'], function(done) {
 
 gulp.task('bower:install', ['clean', 'bower:configure'], function() {
   if (globalVar.bowerPackages) {
-    return bower({ cmd: 'install', cwd: globalVar.publicDir}, [globalVar.bowerPackages]);
+    return bower({ cmd: 'install', cwd: globalVar.publicDir, interactive: true }, [globalVar.bowerPackages]);
   } else {
     gutil.log('No --package provided. Using package(s) from bower_components folder.');
     return gulp.src('./bower_components/**/*', {base: '.'}).pipe(gulp.dest(globalVar.publicDir));
@@ -114,6 +114,8 @@ gulp.task('analyze', ['clean:target', 'pre-analyze'], function() {
     "!" + globalVar.bowerDir + "*/*web-animations.html",
     // Not useful in gwt and also has spurious event names
     "!" + globalVar.bowerDir + "*/*iron-jsonp-library.html",
+    // 
+    "!" + globalVar.bowerDir + "*/iron-doc*.html",
     ])
     .pipe(map(function(file, cb) {
       hyd.Analyzer.analyze(globalVar.bowerDir + file.relative).then(function(result) {
@@ -232,19 +234,15 @@ gulp.task('generate:widget-events', ['parse'], function() {
    });
 });
 
-gulp.task('generate:gwt-module', function() {
-  if (!args.excludeLib) {
+gulp.task('generate:gwt-module', function () {
+  if (globalVar.moduleName != 'Elements' || globalVar.ns != 'com.vaadin.polymer') {
+    var dest = globalVar.publicDir.replace(/[^\/]+\/?$/, '');
+    gutil.log("Generating Module: " + dest + globalVar.moduleName + ".gwt.xml");
     return gulp.src(tplDir + "GwtModule.template")
-      .pipe(rename("Elements.gwt.xml"))
-      .pipe(gulp.dest(globalVar.publicDir + "../"));
+      .pipe(rename(globalVar.moduleName + ".gwt.xml"))
+      .pipe(gulp.dest(dest));
   }
 });
-
-gulp.task('copy:static-gwt-module', function() {
-  return gulp.src(tplDir + "Elements.gwt.xml")
-    .pipe(gulp.dest(globalVar.publicDirBase + '/com/vaadin/polymer/'));
-});
-
 
 gulp.task('generate:elements-all', ['generate:elements', 'generate:events']);
 
@@ -283,8 +281,8 @@ gulp.task('copy:pom', function() {
 
 gulp.task('default', function(){
   if(args.pom) {
-    runSequence('clean', 'bower:install', 'generate', 'copy:lib', 'copy:static-gwt-module', 'copy:pom');
+    runSequence('clean', 'bower:install', 'generate', 'copy:lib', 'copy:pom');
   } else {
-    runSequence('clean', 'bower:install', 'generate', 'copy:lib', 'copy:static-gwt-module');
+    runSequence('clean', 'bower:install', 'generate', 'copy:lib');
   }
 });
