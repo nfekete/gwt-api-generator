@@ -2,13 +2,15 @@ package com.vaadin.polymer;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.JavaScriptObject;
-import elemental2.core.JsArray;
 import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.user.client.DOM;
 
 import com.vaadin.polymer.PolymerFunction;
+
+import elemental2.core.JsArray;
 import elemental2.dom.HTMLElement;
+import elemental2.dom.Node;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,6 +68,8 @@ public abstract class Polymer {
         JsArray querySelectorAll(String selector);
 
         void appendChild(Object el);
+        
+        <T extends Node> removeChild(Node child);
 
         JsArray children();
     }
