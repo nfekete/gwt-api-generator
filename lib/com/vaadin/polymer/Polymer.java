@@ -69,7 +69,7 @@ public abstract class Polymer {
 
         void appendChild(Object el);
         
-        <T extends Node> removeChild(Node child);
+        <T extends Node> T removeChild(T child);
 
         JsArray children();
     }
